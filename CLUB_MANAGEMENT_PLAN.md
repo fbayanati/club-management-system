@@ -616,3 +616,136 @@ The `customFields` system on clubs and members ensures domain-specific data can 
 _Generated: August 2, 2026_
 _Project: Club Management System_
 _Tech Stack: Angular 22 + Firebase + Angular Material + AG Grid_
+---
+
+## 11. Project Management Integration Plan
+
+### Overview
+
+This section documents the integration of GitHub Issues as the project management tool for the Club Management System, connected to Cline (the AI coding assistant) via a custom MCP (Model Context Protocol) server. This enables automated creation, reading, updating, and deletion of project tasks, stories, and sub-tasks directly from Cline.
+
+### Why GitHub Issues is the Best Fit
+
+1. **Already Integrated** — The project repository (`fbayanati/club-management-system`) is already on GitHub. No new account or tool setup is required.
+
+2. **Natural Development Workflow** — GitHub Issues can be linked to commits and pull requests automatically. When Cline implements a feature, it can reference the issue number in commit messages, creating a traceable audit trail from task to code.
+
+3. **Free & Well-Documented API** — GitHub's REST API is free, well-documented, and has generous rate limits (5,000 requests/hour for authenticated requests). No cost concerns for a small project.
+
+4. **Flexible Organization** — Issues can be organized using:
+   - **Labels** for categorization (e.g., `phase-1`, `phase-2`, `feature:members`, `feature:events`, `bug`, `enhancement`, `story`, `task`, `ugs`)
+   - **Milestones** for phases (Phase 1: Foundation, Phase 2: Core Features, Phase 3: High-Value Additions, Phase 4: Operational Excellence)
+   - **Assignees** for task ownership
+   - **Task lists** within issue bodies for sub-tasks
+
+5. **Markdown Support** — Issues support rich markdown formatting, making it easy to write detailed user stories, acceptance criteria, and solution approaches.
+
+6. **MCP Server Simplicity** — The GitHub API is straightforward to wrap in an MCP server. Authentication uses a personal access token (PAT), which can be created once and stored securely.
+
+7. **Community & Ecosystem** — GitHub Issues has extensive tooling, integrations, and community support. Many existing tools and workflows already support GitHub Issues.
+
+### How It Would Work
+
+#### Issue Organization Schema
+
+| Entity Type | Label | Milestone | Body Template |
+|-------------|-------|-----------|---------------|
+| **User Goal/Story (UGS)** | `ugs` | Phase milestone | Goal, Acceptance Criteria, Solution Approach |
+| **Task** | `task` | Phase milestone | Description, Steps, Related UGS |
+| **Sub-task** | `subtask` | Phase milestone | Description, Parent task reference |
+| **Bug** | `bug` | Current milestone | Description, Steps to reproduce, Expected behavior |
+| **Feature** | `enhancement` | Phase milestone | Feature description, Requirements |
+
+#### Example Issue Hierarchy
+
+```
+UGS-001: Member Management (story)
+├── TASK-001: Create member data model (task)
+│   ├── SUB-001: Define Member interface (subtask)
+│   └── SUB-002: Create member repository (subtask)
+├── TASK-002: Build member list view (task)
+│   ├── SUB-003: AG Grid member table component (subtask)
+│   └── SUB-004: Search and filter functionality (subtask)
+└── TASK-003: Implement member CRUD operations (task)
+    ├── SUB-005: Create member form component (subtask)
+    └── SUB-006: Wire up Firestore data service (subtask)
+```
+
+#### Issue Body Templates
+
+**UGS (User Goal/Story) Template:**
+```markdown
+## Goal
+[Description of what the user wants to achieve]
+
+## Acceptance Criteria
+- [ ] Criterion 1
+- [ ] Criterion 2
+- [ ] Criterion 3
+
+## Solution Approach
+[Technical approach, components to create/modify, data model changes]
+
+## Related Tasks
+- [ ] TASK-001: ...
+- [ ] TASK-002: ...
+```
+
+**Task Template:**
+```markdown
+## Description
+[Brief description of the task]
+
+## Steps
+1. Step 1
+2. Step 2
+3. Step 3
+
+## Related UGS
+- UGS-001: [Link to parent story]
+
+## Acceptance Criteria
+- [ ] Criterion 1
+- [ ] Criterion 2
+```
+
+### Cline Automation Flow
+
+#### 1. Initial Setup
+- Cline reads `CLUB_MANAGEMENT_PLAN.md` and parses the feature breakdown (Phases 1-4)
+- Cline creates GitHub Issues for each feature, tagged with appropriate labels and milestones
+- Cline creates UGS (User Goal/Story) issues for major features, with task issues as children
+
+#### 2. Daily Workflow
+- Cline can query: "What tasks are in the Phase 2 milestone?"
+- Cline reads task details to understand context before implementing
+- Cline updates task status: "Mark TASK-005 as in-progress"
+- Cline creates new issues for bugs discovered during development
+- Cline adds comments to issues with implementation notes or questions
+
+#### 3. Implementation Flow
+1. Cline reads a task issue to understand requirements
+2. Cline implements the feature in the Angular codebase
+3. Cline commits changes with the issue number referenced (e.g., `git commit -m "feat: implement member CRUD #TASK-003"`)
+4. Cline updates the issue status (e.g., adds a comment, closes the issue)
+5. Cline creates sub-tasks or follow-up issues as needed
+
+#### 4. Example Cline Commands
+- "Create a GitHub issue for implementing the member search/filter feature, tagged as task under Phase 2"
+- "List all open issues labeled 'ugs' in the Phase 2 milestone"
+- "Update issue #42 to add a comment about the implementation approach"
+- "Close issue #38 as completed"
+- "Create a sub-task under issue #42 for the AG Grid column configuration"
+
+### MCP Server Integration
+
+The MCP (Model Context Protocol) server acts as a bridge between Cline and GitHub Issues:
+
+1. **MCP Server** — A Node.js server that implements the MCP protocol and wraps the GitHub Issues API
+2. **Tools** — Exposed as callable functions: `create_issue`, `list_issues`, `get_issue`, `update_issue`, `close_issue`, `add_comment`, `list_labels`, `list_milestones`
+3. **Resources** — Exposed as readable URIs: `github://issues/{number}`, `github://repos/{owner}/{repo}/issues`, `github://repos/{owner}/{repo}/milestones`
+4. **Authentication** — Uses a GitHub Personal Access Token (PAT) stored in environment variables
+
+See `MCP_SERVER_GUIDE.md` for detailed implementation instructions.
+
+---
